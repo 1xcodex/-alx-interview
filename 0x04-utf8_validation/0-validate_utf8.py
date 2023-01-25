@@ -1,86 +1,32 @@
 #!/usr/bin/python3
-
-"""
-Module 0-validate_utf8
-"""
+"""UTF-8 Validation"""
 
 
-def validUTF8_v1(data):
-    """
-    Determines if a given data set
-    represents a valid UTF-8 encoding
-    """
-    count = 0
-
-    if not data:
-        return False
-
-    for num in data:
-        bin_rep = format(num, '#010b')[-8:]
-
-        if count == 0:
-            for bit in bin_rep:
-                if bit == '0':
-                    break
-                count += 1
-
-            if count == 0:
-                continue
-
-            if count == 1 or count > 4:
-                return False
-        else:
-            if not (bin_rep[0] == '1' and bin_rep[1] == '0'):
-                return False
-    return count == 0
+def get_leading_set_bits(num):
+    """returns the number of leading set bits (1)"""
+    set_bits = 0
+    helper = 1 << 7
+    while helper & num:
+        set_bits += 1
+        helper = helper >> 1
+    return set_bits
 
 
 def validUTF8(data):
-    count = 0
-
-    if data is None:
-        return False
-
-    for num in data:
-        if count == 0:
-            if num & 128 == 0:
-                count = 0
-            elif num & 224 == 192:
-                count = 1
-            elif num & 240 == 224:
-                count = 2
-            elif num & 248 == 240:
-                count = 3
-            else:
-                return False
-        else:
-            if num & 192 != 128:
-                return False
-    if count == 0:
-        return True
-    return False
-
-
-def validUTF8_v4(data):
-    n_bytes = 0
-
-    mask1 = 1 << 7
-    mask2 = 1 << 6
-
-    for num in data:
-        mask = 1 << 7
-        if n_bytes == 0:
-            while mask & num:
-                n_bytes += 1
-                mask = mask >> 1
-
-            if n_bytes == 0:
+    """determines if a given data set represents a valid UTF-8 encoding"""
+    bits_count = 0
+    for i in range(len(data)):
+        if bits_count == 0:
+            bits_count = get_leading_set_bits(data[i])
+            '''1-byte (format: 0xxxxxxx)'''
+            if bits_count == 0:
                 continue
-
-            if n_bytes == 1 or n_bytes > 4:
+            '''a character in UTF-8 can be 1 to 4 bytes long'''
+            if bits_count == 1 or bits_count > 4:
                 return False
         else:
-            if not (num & mask1 and not (num & mask2)):
+            '''checks if current byte has format 10xxxxxx'''
+            if not (data[i] & (1 << 7) and not (data[i] & (1 << 6))):
                 return False
-        n_bytes -= 1
-        return n_bytes == 0
+        bits_count -= 1
+    return bits_count == 0
